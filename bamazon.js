@@ -76,34 +76,52 @@ inquirer
     // If the inquirerResponse confirms, we display an Order Received message
     if (inquirerResponse.confirm) {
 
-      var theItem = inquirerResponse.order;
-      // var requestedQuantity = inquirerResponse.quantity;
-
-      var howManyCurrently = connection.query(
-        "SELECT product_name, stock_quantity from products WHERE item_id =" + theItem,
-        function(err,res){
+      var howManyCurrently = connection.query( "SELECT price, product_name, stock_quantity from products WHERE item_id =" + inquirerResponse.order, function(err,res){
+            
             if (err) throw err;
 
-            console.table("+---------------------------------------------+\r\n" + 
-             chalk.magenta("                ITEM #" + theItem + " | ") + chalk.cyan.bold((res[0].product_name).toUpperCase()) + "\r\n" +
+               console.log("+---------------------------------------------+\r\n" + 
+             chalk.magenta("                ITEM #" + inquirerResponse.order + " | ") + 
+             chalk.cyan.bold((res[0].product_name).toUpperCase()) + "\r\n" +
                           "+---------------------------------------------+\r\n" +
                           "          Currently in stock: " + res[0].stock_quantity + "\r\n" +
                           "          The amount you requested: " + inquirerResponse.quantity + "\r\n" +
-                          "+---------------------------------------------+\r\n");
+                          "+---------------------------------------------+");
 
             if (inquirerResponse.quantity > res[0].stock_quantity) {
-              console.log("Sorry, you have request more than we have in stock. Please start again.")
+              console.log("Sorry, you have requested more than we have in stock.")
               connection.end();
             }
+
             else {
-              console.log("Okay, sounds good, we'll fulfill this order.")
-              connection.end();
-            }
-
-        });
-
-      // var stockQuantity = JSON.stringify(howManyCurrently._results[0][0].stock_quantity);
-
+              console.log("Okay, sounds good, we'll fulfill this order.");
+              let newQuantity = res[0].stock_quantity - inquirerResponse.quantity;
+              let customerPrice = (inquirerResponse.quantity * res[0].price).toFixed(2);
+              console.log("Your total is $" + customerPrice);
+              updateProduct(newQuantity, inquirerResponse.order);
+              function updateProduct(value, id){
+                connection.query("UPDATE products SET ? WHERE ?",
+                [
+                  {
+                    stock_quantity: value
+                  },
+                  {
+                    item_id: id
+                  }
+                ],
+                function(err, res) {
+                    if(err) throw err;
+                    console.log("+---------------------------------------------+\r\n" +
+                                "       (UPDATED) Currently in stock: " + newQuantity + "\r\n" +
+                                "+---------------------------------------------+\r\n");
+                    connection.end();
+                
+                    });
+              }
+                       
+          }
+            
+      });
 
 
       // Once the customer has placed the order, your application should check if your store has enough of the product to meet the customer's request.
@@ -125,4 +143,3 @@ inquirer
     }
   });
 }
-
