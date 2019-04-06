@@ -24,5 +24,3 @@ VALUES ("Lawnmower","Lawn Care",150,10),
         ("Phil Collins CD","Music",9,2000),
         ("Paper Towels","Kitchen",4,275),
         ("Whole Milk","Food",3,150);
-        
--- select * FROM products;
