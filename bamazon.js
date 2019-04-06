@@ -21,7 +21,7 @@ var connection = mysql.createConnection({
 connection.connect(function(err) {
     if (err) throw err;
     console.log(
-        "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nConnected to bamazon database as id "
+        "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nCONNECTED TO BAMAZON DATABASE AS ID "
         + connection.threadId + 
         "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     displayAll();
@@ -34,7 +34,7 @@ function displayAll() {
             if (err) throw err;
             console.table(res);
             // console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            prompt();
+            start();
         });
 }
 
@@ -45,23 +45,29 @@ function displayAll() {
 // The second message should ask how many units of the product they would like to buy.
 
 // Create a "Prompt" with a series of questions.
-function prompt(){
+function start(){
 inquirer
   .prompt([
     // Here we create a basic text prompt.
     {
         type: "input",
-        message: "Which item would you like to buy?\n 1- Lawnmower\n 2- Weed Eater\n 3- Television\n 4- Xbox\n 5- Bananas\n 6- Salmon\n 7- Socks\n 8- Phil Collins CD\n 9- Paper Towels\n 10- Whole Milk\n" + chalk.blue("Enter your selection: "),
+        message: "Which item would you like to buy?\n 1- Lawnmower\n 2- Weed Eater\n 3- Television\n 4- Xbox\n 5- Bananas\n 6- Salmon\n 7- Socks\n 8- Phil Collins CD\n 9- Paper Towels\n 10- Whole Milk\n" + chalk.blue("Please enter your selection via Item #:\n"),
         name: "order",
+        validate: function(value){
+          return !isNaN(value) && value > 1 && value < 11;
+        }
     },
     {
         type: "input",
-        message: "How many of this item would you like to buy?\n" + chalk.blue("Enter your selection: "),
+        message: chalk.green("Please enter how many you would like to buy:\n"),
         name: "quantity",
+        validate: function(value){
+          return !isNaN(value) && value > 0;
+        }
     },
     {
         type: "confirm",
-        message: "Would you like to proceed with this order?:",
+        message: chalk.yellow("Would you like to proceed with this order?:\n"),
         name: "confirm",
         default: true,
     }
@@ -71,28 +77,39 @@ inquirer
     if (inquirerResponse.confirm) {
 
       var theItem = inquirerResponse.order;
-      var requestedQuantity = inquirerResponse.quantity;
-      // var stockQuantity = 0;
+      // var requestedQuantity = inquirerResponse.quantity;
 
       var howManyCurrently = connection.query(
-        "SELECT stock_quantity from products WHERE ?",
-        {
-          item_id: theItem
-        },
+        "SELECT product_name, stock_quantity from products WHERE item_id =" + theItem,
         function(err,res){
             if (err) throw err;
-            var stockQuantity = JSON.stringify(res[0].stock_quantity);
+
+            console.table("+---------------------------------------------+\r\n" + 
+             chalk.magenta("                ITEM #" + theItem + " | ") + chalk.cyan.bold((res[0].product_name).toUpperCase()) + "\r\n" +
+                          "+---------------------------------------------+\r\n" +
+                          "          Currently in stock: " + res[0].stock_quantity + "\r\n" +
+                          "          The amount you requested: " + inquirerResponse.quantity + "\r\n" +
+                          "+---------------------------------------------+\r\n");
+
+            if (inquirerResponse.quantity > res[0].stock_quantity) {
+              console.log("Sorry, you have request more than we have in stock. Please start again.")
+              connection.end();
+            }
+            else {
+              console.log("Okay, sounds good, we'll fulfill this order.")
+              connection.end();
+            }
+
         });
 
-      console.log("\nOrder Received for Item #: " + inquirerResponse.order + "\nand a quantity of: " + inquirerResponse.quantity);
-      console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-      console.log("This is how many are in stock: " + stockQuantity);
-      console.log("This is how many were requested: " + requestedQuantity);
+      // var stockQuantity = JSON.stringify(howManyCurrently._results[0][0].stock_quantity);
+
+
 
       // Once the customer has placed the order, your application should check if your store has enough of the product to meet the customer's request.
 
       // if (inquirerResponse.quantity > )
-      connection.end();
+      // connection.end();
 
       // If not, the app should log a phrase like Insufficient quantity!, and then prevent the order from going through.
       // However, if your store does have enough of the product, you should fulfill the customer's order.
